@@ -1,23 +1,23 @@
-import { NOTES_LIST } from "../constants/localstorage-keys";
+import { NOTES_OBJECT } from "../constants/localstorage-keys";
 import type { Note } from "../types/note";
 
-export const getAllNotes = (): Note[] => {
+export const getAllNotes = (): Record<string, Note> => {
   try {
-    const notes = localStorage.getItem(NOTES_LIST);
-    if (!notes) {
-      return [];
+    const currentState = localStorage.getItem(NOTES_OBJECT);
+    if (!currentState) {
+      return {};
     }
 
-    return JSON.parse(notes);
+    return JSON.parse(currentState);
   } catch(e) {
     console.log('Something went wrong during localstorage access',e)
-    return [];
+    return {};
   }
 }
 export const addNote = (newNote: Note) => {
   try {
-    const currentList = getAllNotes();
-    localStorage.setItem(NOTES_LIST, JSON.stringify([...currentList, newNote]));
+    const currentState = getAllNotes();
+    localStorage.setItem(NOTES_OBJECT, JSON.stringify({...currentState, [newNote.id]: newNote}));
   } catch(e) {
     console.log('Something went wrong during localstorage access',e)
   }
@@ -25,10 +25,9 @@ export const addNote = (newNote: Note) => {
 
 export const removeNoteById = (id: string) => {
   try {
-    const currentList = getAllNotes();
-    const updatedList = currentList.filter(note => note.id !== id)
-  
-    localStorage.setItem(NOTES_LIST, JSON.stringify(updatedList));
+    const currentState = getAllNotes();
+    delete currentState[id]
+    localStorage.setItem(NOTES_OBJECT, JSON.stringify(currentState));
   } catch(e) {
     console.log('Something went wrong during localstorage access',e)
   }
@@ -36,16 +35,9 @@ export const removeNoteById = (id: string) => {
 
 export const updateNote = (updatedNote: Note) => {
   try {
-    const currentList = getAllNotes();
-    const updatedList = currentList.map(note => {
-      if (note.id === updatedNote.id) {
-        return updatedNote
-      }
-
-      return note;
-    })
-  
-    localStorage.setItem(NOTES_LIST, JSON.stringify(updatedList));
+    const currentState = getAllNotes();
+    currentState[updatedNote.id] = updatedNote
+    localStorage.setItem(NOTES_OBJECT, JSON.stringify(currentState));
   } catch(e) {
     console.log('Something went wrong during localstorage access',e)
   }

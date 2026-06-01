@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent } from "react";
 import { StickyNote } from "./sticky-note";
 import { useNoteContext } from "../context/note-context/note-context";
 import { TrashSvg } from "../svg/trash";
@@ -17,25 +17,27 @@ import {
 
 export const DragArea = () => {
   // this is the source of truth for application notes
-  const [notes, setNotes] = useState<Note[]>(getAllNotes());
+  // the data structure is chosen to be an object, so update, delete and write are in O(1)
+  const [notes, setNotes] = useState<Record<string, Note>>(getAllNotes());
+  const notesArray = useMemo(() => Object.values(notes), [notes]);
   const dragAreaRef = useRef<HTMLDivElement>(null);
   const trashAreaRef = useRef<HTMLDivElement>(null);
   const noteContext = useNoteContext();
 
   const handleDelete = (id: string) => {
-    setNotes((prevNotes) => prevNotes.filter((note) => note.id !== id));
+    setNotes((prevNotes) => {
+      const newNotes = { ...prevNotes };
+      delete newNotes[id];
+      return newNotes;
+    });
     removeNoteById(id);
   };
   const handleNoteUpdate = (updatedNote: Note) => {
-    setNotes((prevNotes) =>
-      prevNotes.map((note) => {
-        if (note.id === updatedNote.id) {
-          return updatedNote;
-        }
-
-        return note;
-      }),
-    );
+    setNotes((prevNotes) => {
+      const newNotes = { ...prevNotes };
+      newNotes[updatedNote.id] = updatedNote;
+      return newNotes;
+    });
     updateNote(updatedNote);
   };
   const handleCreateNote = (e: MouseEvent<HTMLElement>) => {
@@ -55,7 +57,7 @@ export const DragArea = () => {
     setLocalstorageMaxZIndex(zIndex + 1);
 
     addNote(newNote);
-    setNotes((prevNotes) => [...prevNotes, newNote]);
+    setNotes((prevNotes) => ({ ...prevNotes, [newNote.id]: newNote }));
   };
 
   return (
@@ -65,7 +67,7 @@ export const DragArea = () => {
       // touch-none is to not zoom on mobile
       className="h-[100vh] bg-[#fcffee] overflow-hidden relative cursor-crosshair touch-none flex"
     >
-      {notes.map((note) => (
+      {notesArray.map((note) => (
         <StickyNote
           key={note.id}
           noteData={note}
